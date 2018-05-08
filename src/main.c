@@ -9,8 +9,6 @@ int main(int argc, char *argv[]){
 	sceShellUtilInitEvents(0);
 	sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);
 
-	sceIoMkdir("ux0:package/", 0777);
-
 	psvDebugScreenInit();
 
 	sceGameUpdatePackageDownload();

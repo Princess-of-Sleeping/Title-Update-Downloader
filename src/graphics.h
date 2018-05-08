@@ -13,6 +13,8 @@ void psvDebugScreenClear(int bg_color);
 // printf to the screen
 void psvDebugScreenPrintf(const char *format, ...);
 
+void psvDebugScreenPrintf2(const char *format, ...);
+
 void *psvDebugScreenGetVram();
 int psvDebugScreenGetX();
 int psvDebugScreenGetY();

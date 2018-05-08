@@ -1,3 +1,4 @@
+
 #include <psp2/kernel/processmgr.h>
 
 #include <psp2/io/dirent.h>
@@ -26,7 +27,9 @@
 #define printf2 psvDebugScreenPrintf2
 #define SetTextColor psvDebugScreenSetFgColor
 
+
 char download_path[0x400];
+char download_dir_path[0x400];
 char titleid[0x200];
 char hmac_ret[0x20];
 char title_update_xml_url[0x400];
@@ -34,6 +37,7 @@ char buf[0x4000];
 char buf_0x1000[0x1000];
 char version[6];
 char pkg_url[0x200];
+char drive[8];
 
 hmac_sha256 hmac;
 SceIoStat stat;
@@ -48,7 +52,6 @@ void not_press_wait(void);
 /* gupd.c */
 
 int sceGameUpdatePackageDownload(void);
-
 
 
 

@@ -1,27 +1,44 @@
 #include "main.h"
 
+uint8_t key[] = {
+		0xE5, 0xE2, 0x78, 0xAA, 0x1E, 0xE3, 0x40, 0x82, 0xA0, 0x88, 0x27, 0x9C, 0x83, 0xF9, 0xBB, 0xC8,
+		0x06, 0x82, 0x1C, 0x52, 0xF2, 0xAB, 0x5D, 0x2B, 0x4A, 0xBD, 0x99, 0x54, 0x50, 0x35, 0x51, 0x14
+		};
 
-uint64_t getPartitionSize(char *partition, int arg) {
+int IsExistDrive(char *drive){
+
+	int ret = sceIoDopen(drive);
+
+	if(ret >= 0)sceIoDclose(ret);
+
+	return ret;
+
+}
+
+uint64_t getPartitionSize(char *partition, char *arg) {
 
 	SceIoStat stat;
 	memset(&stat, 0, sizeof(SceIoStat));
-	
-	if (sceIoGetstat(partition, &stat) >= 0) {	
-		SceIoDevInfo info;
-		memset(&info, 0, sizeof(SceIoDevInfo));
-		int res = sceIoDevctl(partition, 0x3001, 0, 0, &info, sizeof(SceIoDevInfo));
-		if (res >= 0) {
 
-			if (arg == 0) {
-				return info.free_size;
-			}  else if ( arg == 1 ) {
-				return info.max_size;
-			}
+	int stat_ret = sceIoGetstat(partition, &stat);
 
-		}
-
+	if (stat_ret < 0){
+		return stat_ret;
 	}
-	
+
+	SceIoDevInfo info;
+	memset(&info, 0, sizeof(SceIoDevInfo));
+	int res = sceIoDevctl(partition, 0x3001, 0, 0, &info, sizeof(SceIoDevInfo));
+	if (res < 0){
+		return res;
+	}
+
+	if (memcmp(arg, "FreeSize", 8) == 0) {
+		return info.free_size;
+	}  else if (memcmp(arg, "MaxSize", 7) == 0) {
+		return info.max_size;
+	}
+
 	return -1;
 
 }
@@ -46,34 +63,26 @@ void httpInit() {
 	sceHttpInit(1*1024*1024);
 }
 
-uint64_t _sceHttpGetResponseContentLength(char *url, char *buf, int ReadSize){
-
-	long long length = 0;
-
-	int ret, tpl, conn, req;
-
-	tpl = sceHttpCreateTemplate("PsVita TitleUpdate", 2, 1);
-	conn = sceHttpCreateConnectionWithURL(tpl, url, 0);
-	req = sceHttpCreateRequestWithURL(conn, 0, url, 0);
-	ret = sceHttpSendRequest(req, NULL, 0);
-	ret = sceHttpGetResponseContentLength(req, &length);
-	sceHttpReadData(req, buf, ReadSize);
-
-	return length;
-
-}
-
-void psvDebugScreenPrintf2(const char *format, ...);
-
-uint8_t key[] = {
-		0xE5, 0xE2, 0x78, 0xAA, 0x1E, 0xE3, 0x40, 0x82, 0xA0, 0x88, 0x27, 0x9C, 0x83, 0xF9, 0xBB, 0xC8,
-		0x06, 0x82, 0x1C, 0x52, 0xF2, 0xAB, 0x5D, 0x2B, 0x4A, 0xBD, 0x99, 0x54, 0x50, 0x35, 0x51, 0x14
-		};
-
 
 int sceGameUpdatePackageDownload(void){
 
 	int res = 0;
+
+
+	strcpy(drive, "host0:");
+
+	if(IsExistDrive(drive) < 0){
+		strcpy(drive, "sd0:");
+	}else if(IsExistDrive(drive) < 0){
+		strcpy(drive, "uma0:");
+	}else if(IsExistDrive(drive) < 0){
+		strcpy(drive, "ux0:");
+	}
+
+	sprintf(download_dir_path, "%spackage/", drive);
+
+
+	sceIoMkdir(download_dir_path, 0777);
 
 
 	SceUID dfd0 = sceIoDopen("ux0:appmeta/");
@@ -82,8 +91,8 @@ int sceGameUpdatePackageDownload(void){
 
 	do {
 
-	netInit();
-	httpInit();
+		netInit();
+		httpInit();
 
 		SceIoDirent dir;
 		memset(&dir, 0, sizeof(SceIoDirent));
@@ -99,10 +108,9 @@ int sceGameUpdatePackageDownload(void){
 			memset(download_path, 0, sizeof(download_path));
 			memset(&stat, 0, sizeof(stat));
 			memset(pkg_url, 0, sizeof(pkg_url));
-
+			memset(drive, 0, sizeof(drive));
 
 			sprintf(titleid, "np_%s", dir.d_name);
-
 
 			hmac_sha256_initialize(&hmac, key, sizeof(key));
 
@@ -193,8 +201,7 @@ int sceGameUpdatePackageDownload(void){
 			printf2("Update Version : %s\n\n", version);
 
 
-			sprintf(download_path, "ux0:package/%s-%s.pkg", dir.d_name, version);
-
+			sprintf(download_path, "%s%s-%s.pkg", download_dir_path, dir.d_name, version);
 
 			sceIoGetstat(download_path, &stat);
 
@@ -242,7 +249,7 @@ int sceGameUpdatePackageDownload(void){
 
 
 
-			if(getPartitionSize("ux0:", 0) > (uint64_t)length){
+			if(getPartitionSize("ux0:", "FreeSize") > (uint64_t)length){
 
 				printf2("ok\n\n");
 
