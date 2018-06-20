@@ -51,7 +51,7 @@ void not_press_wait(void);
 
 /* gupd.c */
 
-int sceGameUpdatePackageDownload(void);
+int sceInstallGamesUpdatePackageDownload(void);
 
 
 

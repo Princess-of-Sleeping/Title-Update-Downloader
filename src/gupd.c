@@ -9,8 +9,12 @@ int IsExistDrive(char *drive){
 
 	int ret = sceIoDopen(drive);
 
-	if(ret >= 0)sceIoDclose(ret);
+	if(ret >= 0){
 
+		sceIoDclose(ret);
+		return 0;
+
+	}
 	return ret;
 
 }
@@ -64,7 +68,7 @@ void httpInit() {
 }
 
 
-int sceGameUpdatePackageDownload(void){
+int sceInstallGamesUpdatePackageDownload(void){
 
 	int res = 0;
 
@@ -73,9 +77,13 @@ int sceGameUpdatePackageDownload(void){
 
 	if(IsExistDrive(drive) < 0){
 		strcpy(drive, "sd0:");
-	}else if(IsExistDrive(drive) < 0){
+	}
+
+	if(IsExistDrive(drive) < 0){
 		strcpy(drive, "uma0:");
-	}else if(IsExistDrive(drive) < 0){
+	}
+
+	if(IsExistDrive(drive) < 0){
 		strcpy(drive, "ux0:");
 	}
 
@@ -85,6 +93,13 @@ int sceGameUpdatePackageDownload(void){
 	sceIoMkdir(download_dir_path, 0777);
 
 
+
+	/*
+
+		The base icon of the bubble displayed in SceShell is here.
+		Icon information of the game card etc will also be saved here unless you delete the bubble.
+
+	 */
 	SceUID dfd0 = sceIoDopen("ux0:appmeta/");
 
 	res = 0;
@@ -114,7 +129,7 @@ int sceGameUpdatePackageDownload(void){
 
 			hmac_sha256_initialize(&hmac, key, sizeof(key));
 
-			hmac_sha256_update(&hmac, titleid, strlen(titleid));
+			hmac_sha256_update(&hmac, (void*)titleid, strlen(titleid));
 
 			hmac_sha256_finalize(&hmac, NULL, 0);
 
@@ -137,7 +152,11 @@ int sceGameUpdatePackageDownload(void){
 
 
 
-			sprintf(title_update_xml_url, "http://gs-sec.ww.np.dl.playstation.net/pl/np/%s/%s/%s-ver.xml", dir.d_name, hmac_ret, dir.d_name);
+			sprintf(title_update_xml_url,
+				"http://gs-sec.ww.np.dl.playstation.net/pl/np/%s/%s/%s-ver.xml",
+				dir.d_name,
+				hmac_ret,
+				dir.d_name);
 
 
 
@@ -156,24 +175,34 @@ int sceGameUpdatePackageDownload(void){
 
 			int i;
 
+			char *test1;
+			char *test2;
+
 			for(i=0;i<sizeof(buf);i++){
-				if((buf[i+0] == 0x3C) && (buf[i+1] == 0x70) && (buf[i+2] == 0x61) && (buf[i+3] == 0x63)){
+
+				test1 = (buf + i);
+
+				if(strncmp(test1, "<pac", 4) == 0){
+
 					buf[i-1] = 0;
 					for(int i1=i;i1<sizeof(buf);i1++){
-						if((buf[i1] == 0x3E)){
+
+						test2 = (buf + i1);
+
+						if(strncmp(test2, ">", 1) == 0){
 							buf[i1+1] = 0;
 						}
 					}
 					for(int i2=0;i2<sizeof(buf)/2;i2++){
 							buf[i2] = buf[i2+i];
 					}
-					i += sizeof(buf);
+					break;
 				}
+
+
 			}
 
 
-
-			//sceKernelDelayThread(1 * 1000 * 1000);
 
 			if ((uint64_t)length < 100) {
 				printf2("There is no update to this game.\n\n\n");
@@ -183,8 +212,16 @@ int sceGameUpdatePackageDownload(void){
 			}
 
 
+
+			char *test3;
+
+
 			for(i=0;i<sizeof(buf);i++){
-				if((buf[i+0] == 0x6F) && (buf[i+1] == 0x6E) && (buf[i+2] == 0x3D) && (buf[i+3] == 0x22)){
+
+				test3 = (buf + i);
+
+				if(strncmp(test3, "on=\"", 4) == 0){
+
 					for(int ij=0;ij<sizeof(buf)/2;ij++){
 						buf[ij] = buf[ij+i+4];
 						if(buf[ij] == 0x22){
@@ -192,7 +229,7 @@ int sceGameUpdatePackageDownload(void){
 							break;
 						}
 					}
-					i += sizeof(buf);
+					break;
 				}
 			}
 
@@ -205,8 +242,15 @@ int sceGameUpdatePackageDownload(void){
 
 			sceIoGetstat(download_path, &stat);
 
+
+			char *test4;
+
 			for(i=0;i<sizeof(buf);i++){
-				if((buf[i+0] == 0x75) && (buf[i+1] == 0x72) && (buf[i+2] == 0x6C) && (buf[i+3] == 0x3D) && (buf[i+4] == 0x22)){
+
+				test4 = (buf + i);
+
+				if(strncmp(test4, "url=\"", 5) == 0){
+
 					for(int ij=0;ij<sizeof(buf)/2;ij++){
 						buf[ij] = buf[ij+i+5];
 						if(buf[ij] == 0x22){
@@ -214,7 +258,7 @@ int sceGameUpdatePackageDownload(void){
 							break;
 						}
 					}
-					i += sizeof(buf);
+					break;
 				}
 			}
 
@@ -242,14 +286,14 @@ int sceGameUpdatePackageDownload(void){
 
 
 
-			//printf("PKG Size : %d\n", (uint32_t)length);
+			//printf("PKG Size : %lld\n", (uint32_t)length);
 
 
 			printf2("free space of memory card ... ");
 
 
 
-			if(getPartitionSize("ux0:", "FreeSize") > (uint64_t)length){
+			if(getPartitionSize(drive, "FreeSize") > (uint64_t)length){
 
 				printf2("ok\n\n");
 

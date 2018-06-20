@@ -7,13 +7,17 @@ int main(int argc, char *argv[]){
 	sceKernelPowerLock(0);
 
 	sceShellUtilInitEvents(0);
-	sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);
+	sceShellUtilLock(0xFFF);
 
 	psvDebugScreenInit();
 
-	sceGameUpdatePackageDownload();
+	sceInstallGamesUpdatePackageDownload();
 
 	printf("*** ALL DONE ***\n\n");
+	printf("Press any key to exit this application.\n");
+
+	sceKernelPowerUnlock(0);
+	sceShellUtilUnlock(0xFFF);
 
 	press_exit();
 

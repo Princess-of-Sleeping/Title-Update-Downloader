@@ -48,13 +48,8 @@ void not_press_wait(void) {
 void press_exit(void) {
 
 	get_key(1);
-
-	sceKernelPowerUnlock(0);
-	sceShellUtilUnlock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN);
-
-	printf("Press any key to exit this application.\n");
-
 	get_key(0);
+	get_key(1);
 
 	sceKernelExitProcess(0);
 
